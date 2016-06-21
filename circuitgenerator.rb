@@ -88,7 +88,6 @@
 	  )
 	SQL
 
-
 	db.execute(create_durations_cmd)
 	db.execute(create_muscle_groups_cmd)
 	db.execute(create_movements_cmd)
@@ -145,63 +144,35 @@
 
 ############BUSINESS LOGIC
 
-def view_movement_library(db)
-	puts "==========================================="
-	movements = db.execute(<<-SQL
-		select mv.id, Movementname, groupname, duration, intensity
-		from Movements mv
-		    join durations d on mv.duration_id = d.id
-		    join musclegroups mg on mv.musclegroup_id = mg.id
-		    join intensity inte on mv.intensity_id = inte.id
-		SQL
-		)
-	movements.each do |movearray|
-		puts "#{movearray[0]}: #{movearray[1]}, Group=#{movearray[2]}, Duration (sec)=#{movearray[3]}, Intensity=#{movearray[4]} \n\n"
+	def view_movement_library(db)
+		puts "==========================================="
+		movements = db.execute(<<-SQL
+			select mv.id, Movementname, groupname, duration, intensity
+			from Movements mv
+			    join durations d on mv.duration_id = d.id
+			    join musclegroups mg on mv.musclegroup_id = mg.id
+			    join intensity inte on mv.intensity_id = inte.id
+			SQL
+			)
+		movements.each do |movearray|
+			puts "#{movearray[0]}: #{movearray[1]}, Group=#{movearray[2]}, Duration (sec)=#{movearray[3]}, Intensity=#{movearray[4]} \n\n"
+		end
+		puts "==========================================="
 	end
-	puts "==========================================="
-end
 
-def edit_movement_show_valid_options(selected_aspect)
-	case selected_aspect
-	when 1
-		puts "Please specify a new duration by number:"
-	when 2
-		puts "Duration"
-	when 3
-		puts "Intensity"
+
+############METHODS RELATED TO DATABASE CHANGES
+	def edit_movement_show_valid_options(selected_aspect)
+		case selected_aspect
+		when 1
+			puts "Please specify a new duration by number:"
+		when 2
+			puts "Duration"
+		when 3
+			puts "Intensity"
+		end
 	end
-end
 
-			# def edit_movement (db)
-			# 	view_movement_library(db)
-			# 	puts "Please select the movement you'd like to edit by number or type 'exit.'"
-			# 	selected_movement=gets.chomp
-			# 	if selected_movement.downcase == "exit"
-			# 		return
-				
-			# 	else
-			# 	selected_movement=selected_movement.to_i
-			# 	while !(db.execute("select id from movements").include?(selected_movement))
-			# 		view_movement_library(db)
-			# 		puts "That is not a valid response - please select by number"
-			# 		selected_movement = gets.chomp
-			# 	end
-
-			# 	puts "Please select which aspect (by number) you'd like to change:
-			# 	(1) Group
-			# 	(2) Duration
-			# 	(3) Intensity"
-			# 	selected_aspect = gets.chomp.to_i
-			# 		while !((1...3)===selected_aspect)
-			# 		puts "That's not a valid number, please select which aspect (by number) you'd like to change:
-			# 		(1) Group
-			# 		(2) Duration
-			# 		(3) Intensity"
-			# 		selected_aspect = gets.chomp.to_i
-			# 		end
-			# 	edit_movement_show_valid_options(selected_aspect)
-			# 	end
-		# end
 
 	def edit_movement_check_response (response, db, sql)
 		while !(db.execute(sql).flatten.include?(response.to_i))
@@ -256,6 +227,36 @@ end
 		edit_movement_detail(db, selected_movement, selected_aspect.to_i)
 	end
 
+############METHODS RELATED TO DATABASE ADDITIONS
+
+############METHODS RELATED TO GENERATION OF CIRCUIT
+
+def create_new_circuit_get_next (db, last_muscle_group)
+	movement_array=db.execute("
+					select movementName, duration, musclegroup_id
+					from movements mv 
+					join durations d on d.id = mv.duration_id 
+					where musclegroup_ID <> #{last_muscle_group}
+					"
+					)
+	movement_array[rand(0..movement_array.length-1)]
+end 
+
+def create_new_circuit(db)
+	duration=0
+	circuit=[]
+	while duration < 900
+		if !(circuit.length == 0)
+			last_muscle_group = circuit.last[2]
+		else last_muscle_group = 0
+		end
+		next_move = create_new_circuit_get_next(db, last_muscle_group).flatten
+		circuit.push(next_move)
+		duration += circuit.last[1]
+	end
+	return circuit
+end
+
 ####################################
 ############USER INTERFACE#######
 ####################################
@@ -265,8 +266,14 @@ end
 # edit_movement(db)
  # puts edit_movement_check_response("100".to_i, db, "SELECT id FROM movements")
 
- edit_movement(db)
+ # edit_movement(db)
 
- view_movement_library(db)
+ # view_movement_library(db)
 
  # edit_movement_options(db, "Intensity")
+
+# create_new_circuit(db)
+
+create_new_circuit(db).each do |exercise|
+	puts "#{exercise[0]}: #{exercise[1]} seconds"
+end
