@@ -81,38 +81,44 @@ create_durations_cmd = <<-SQL
 SQL
 
 
-add_stock_movements_cmd = %Q[
-		insert into Movements (movementName, intensity, musclegroup_ID, duration_ID) 
-		select "#{movementName[0]}", #{movementName[1]}, #{movementName[2]}, #{movementName[3]}
-		where NOT EXISTS
-			(SELECT * FROM Movements
-			WHERE movementName = "#{movementName[0]}")
-		]
-
-add_stock_muscle_groups_cmd = %Q[
-		insert into Durations (duration) 
-		select #{duration} 
-		where NOT EXISTS
-			(SELECT * FROM Durations
-			WHERE duration = #{duration})
-		]
-
-add_stock_durations_cmd = %Q[
-		insert into Durations (duration) 
-		select #{duration} 
-		where NOT EXISTS
-			(SELECT * FROM Durations
-			WHERE duration = #{duration})
-		]
-
-db.execute(create_movements_cmd)
-db.execute(create_muscle_groups_cmd)
 db.execute(create_durations_cmd)
+db.execute(create_muscle_groups_cmd)
 
 STOCK_DURATIONS.each do |duration|
+	add_stock_durations_cmd = <<-SQL
+		insert into Durations (duration) 
+		select "#{duration}" 
+		where NOT EXISTS
+			(SELECT * FROM Durations
+			WHERE duration = "#{duration}")
+		SQL
+
 	db.execute(add_stock_durations_cmd)
 end
 
+STOCK_MUSCLE_GROUPS.each do |muscle_group|
+	add_stock_durations_cmd = <<-SQL
+		insert into MuscleGroups (groupname) 
+		select "#{muscle_group}" 
+		where NOT EXISTS
+			(SELECT * FROM MuscleGroups
+			WHERE groupname = "#{muscle_group}")
+		SQL
+
+	db.execute(add_stock_durations_cmd)
+end
+
+STOCK_MOVEMENTS.each do |movement_array|
+	add_stock_movements_cmd = <<-SQL
+		insert into Movements (movementName, intensity, musclegroup_ID, duration_ID) 
+		select "#{movement_array[0]}", "#{movement_array[1]}", "#{movement_array[2]}", "#{movement_array[3]}"
+		where NOT EXISTS
+			(SELECT * FROM Movements
+			WHERE movementName = "#{movement_array[0]}")
+	SQL
+
+	db.execute(add_stock_movements_cmd)
+end
 
 
 ####################################
