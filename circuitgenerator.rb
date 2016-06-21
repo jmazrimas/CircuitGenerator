@@ -17,7 +17,7 @@
 # LOGIC
 
 # 1) Database - create DB initially "seeded" with 
-# 	Exercises: ID, Movement Name, Muscle Group ID, intensity level (1-3), duration ID
+# 	Movements: ID, Movement Name, Muscle Group ID, intensity level (1-3), duration ID
 # 	MuscleGroups: ID, GroupName
 # 	Durations: ID, Time
 # 		Time will be in seconds. Breaking this out, so you can opt to "up the difficulty" later by turning 30 second movments in to 45, etc.
@@ -49,8 +49,39 @@
 ############BUSINESS LOGIC########
 ####################################
 
+############DATABASE CREATION
+require 'sqlite3'
 db = SQLite3::Database.new( "circuit.db" )
 
+create_movements_cmd = <<-SQL
+  CREATE TABLE IF NOT EXISTS Movements(
+    id INTEGER PRIMARY KEY,
+    movementName VARCHAR(255),
+    intensity INT,
+    musclegroup_ID INT,
+    duration_ID INT,
+    FOREIGN KEY (musclegroup_ID) REFERENCES musclegroups(ID),
+    FOREIGN KEY (duration_ID) REFERENCES durations(ID)
+  )
+SQL
+
+create_muscle_groups_cmd = <<-SQL
+  CREATE TABLE IF NOT EXISTS MuscleGroups(
+    id INTEGER PRIMARY KEY,
+    groupname VARCHAR(255)
+  )
+SQL
+
+create_durations_cmd = <<-SQL
+  CREATE TABLE IF NOT EXISTS Durations(
+    id INTEGER PRIMARY KEY,
+    duration INT
+  )
+SQL
+
+db.execute(create_movements_cmd)
+db.execute(create_muscle_groups_cmd)
+db.execute(create_durations_cmd)
 
 
 ####################################
