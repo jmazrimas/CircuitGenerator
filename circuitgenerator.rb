@@ -58,11 +58,12 @@
 	  CREATE TABLE IF NOT EXISTS Movements(
 	    id INTEGER PRIMARY KEY,
 	    movementName VARCHAR(255),
-	    intensity INT,
+	    intensity_ID INT,
 	    musclegroup_ID INT,
 	    duration_ID INT,
 	    FOREIGN KEY (musclegroup_ID) REFERENCES musclegroups(ID),
-	    FOREIGN KEY (duration_ID) REFERENCES durations(ID)
+	    FOREIGN KEY (duration_ID) REFERENCES durations(ID),
+	    FOREIGN KEY (intensity_ID) REFERENCES intensity(ID)
 	  )
 	SQL
 
@@ -131,7 +132,7 @@
 
 	STOCK_MOVEMENTS.each do |movement_array|
 		add_stock_movements_cmd = <<-SQL
-			insert into Movements (movementName, intensity, musclegroup_ID, duration_ID) 
+			insert into Movements (movementName, intensity_id, musclegroup_ID, duration_ID) 
 			select "#{movement_array[0]}", "#{movement_array[1]}", "#{movement_array[2]}", "#{movement_array[3]}"
 			where NOT EXISTS
 				(SELECT * FROM Movements
@@ -147,14 +148,15 @@
 def view_movement_library(db)
 	puts "==========================================="
 	movements = db.execute(<<-SQL
-		select mv.id, Movementname, groupname, duration, intensity 
+		select mv.id, Movementname, groupname, duration, intensity
 		from Movements mv
 		    join durations d on mv.duration_id = d.id
 		    join musclegroups mg on mv.musclegroup_id = mg.id
+		    join intensity inte on mv.intensity_id = inte.id
 		SQL
 		)
 	movements.each do |movearray|
-		puts "#{movearray[0]}: #{movearray[1]}, Group = #{movearray[2]}, Duration (sec)=#{movearray[3]}, Intensity (1-3)=#{movearray[4]} \n\n"
+		puts "#{movearray[0]}: #{movearray[1]}, Group=#{movearray[2]}, Duration (sec)=#{movearray[3]}, Intensity=#{movearray[4]} \n\n"
 	end
 	puts "==========================================="
 end
@@ -206,6 +208,7 @@ end
 			puts 'That is not a valid value. Please specify again.'
 			response=gets.chomp
 		end
+		return response
 	end
 
 	def edit_movement_options(db, dbtable)
@@ -214,18 +217,26 @@ end
 				puts "#{group[0]}: #{group[1]}"
 			end
 			user_selection=gets.chomp
-			user_selection=edit_movement_check_response(user_selection.to_i, db, "SELECT id FROM #{dbtable}").to_i 
+			user_selection=edit_movement_check_response(user_selection.to_i, db, "SELECT id FROM #{dbtable}").to_i
 	end
 
-
+	def edit_movement_commit_change(db, field, newvalue, movement_to_change)
+		db.execute("update Movements set #{field}=#{newvalue} where id=#{movement_to_change}")
+	end
 
 	def edit_movement_detail (db, movement, aspect)
-		case aspect
-		when 1 
-		when 2
-		end
-		# when 3
-		# 	intensity
+			case aspect
+			when 1 
+				then new_value = edit_movement_options(db, "MuscleGroups")
+				edit_movement_commit_change(db, "musclegroup_ID", new_value, movement)
+			when 2 
+				then new_value = edit_movement_options(db, "durations")
+				edit_movement_commit_change(db, "duration_ID", new_value, movement)
+			when 3 
+				then new_value = edit_movement_options(db, "intensity")
+				edit_movement_commit_change(db, "intensity_ID", new_value, movement)
+			else
+			end
 	end
 
 	def edit_movement (db)
@@ -254,6 +265,8 @@ end
 # edit_movement(db)
  # puts edit_movement_check_response("100".to_i, db, "SELECT id FROM movements")
 
- # edit_movement(db)
+ edit_movement(db)
 
- edit_movement_options(db, "Intensity")
+ view_movement_library(db)
+
+ # edit_movement_options(db, "Intensity")
