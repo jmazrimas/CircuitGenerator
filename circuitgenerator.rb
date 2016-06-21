@@ -50,77 +50,97 @@
 ####################################
 
 ############DATABASE CREATION
-require_relative "stockdata"
-require 'sqlite3'
-db = SQLite3::Database.new( "circuit.db" )
+	require_relative "stockdata"
+	require 'sqlite3'
+	db = SQLite3::Database.new( "circuit.db" )
 
-create_movements_cmd = <<-SQL
-  CREATE TABLE IF NOT EXISTS Movements(
-    id INTEGER PRIMARY KEY,
-    movementName VARCHAR(255),
-    intensity INT,
-    musclegroup_ID INT,
-    duration_ID INT,
-    FOREIGN KEY (musclegroup_ID) REFERENCES musclegroups(ID),
-    FOREIGN KEY (duration_ID) REFERENCES durations(ID)
-  )
-SQL
-
-create_muscle_groups_cmd = <<-SQL
-  CREATE TABLE IF NOT EXISTS MuscleGroups(
-    id INTEGER PRIMARY KEY,
-    groupname VARCHAR(255)
-  )
-SQL
-
-create_durations_cmd = <<-SQL
-  CREATE TABLE IF NOT EXISTS Durations(
-    id INTEGER PRIMARY KEY,
-    duration INT
-  )
-SQL
-
-
-db.execute(create_durations_cmd)
-db.execute(create_muscle_groups_cmd)
-
-STOCK_DURATIONS.each do |duration|
-	add_stock_durations_cmd = <<-SQL
-		insert into Durations (duration) 
-		select "#{duration}" 
-		where NOT EXISTS
-			(SELECT * FROM Durations
-			WHERE duration = "#{duration}")
-		SQL
-
-	db.execute(add_stock_durations_cmd)
-end
-
-STOCK_MUSCLE_GROUPS.each do |muscle_group|
-	add_stock_durations_cmd = <<-SQL
-		insert into MuscleGroups (groupname) 
-		select "#{muscle_group}" 
-		where NOT EXISTS
-			(SELECT * FROM MuscleGroups
-			WHERE groupname = "#{muscle_group}")
-		SQL
-
-	db.execute(add_stock_durations_cmd)
-end
-
-STOCK_MOVEMENTS.each do |movement_array|
-	add_stock_movements_cmd = <<-SQL
-		insert into Movements (movementName, intensity, musclegroup_ID, duration_ID) 
-		select "#{movement_array[0]}", "#{movement_array[1]}", "#{movement_array[2]}", "#{movement_array[3]}"
-		where NOT EXISTS
-			(SELECT * FROM Movements
-			WHERE movementName = "#{movement_array[0]}")
+	create_movements_cmd = <<-SQL
+	  CREATE TABLE IF NOT EXISTS Movements(
+	    id INTEGER PRIMARY KEY,
+	    movementName VARCHAR(255),
+	    intensity INT,
+	    musclegroup_ID INT,
+	    duration_ID INT,
+	    FOREIGN KEY (musclegroup_ID) REFERENCES musclegroups(ID),
+	    FOREIGN KEY (duration_ID) REFERENCES durations(ID)
+	  )
 	SQL
 
-	db.execute(add_stock_movements_cmd)
-end
+	create_muscle_groups_cmd = <<-SQL
+	  CREATE TABLE IF NOT EXISTS MuscleGroups(
+	    id INTEGER PRIMARY KEY,
+	    groupname VARCHAR(255)
+	  )
+	SQL
 
+	create_durations_cmd = <<-SQL
+	  CREATE TABLE IF NOT EXISTS Durations(
+	    id INTEGER PRIMARY KEY,
+	    duration INT
+	  )
+	SQL
+
+
+	db.execute(create_durations_cmd)
+	db.execute(create_muscle_groups_cmd)
+	db.execute(create_movements_cmd)
+
+	STOCK_DURATIONS.each do |duration|
+		add_stock_durations_cmd = <<-SQL
+			insert into Durations (duration) 
+			select "#{duration}" 
+			where NOT EXISTS
+				(SELECT * FROM Durations
+				WHERE duration = "#{duration}")
+			SQL
+
+		db.execute(add_stock_durations_cmd)
+	end
+
+	STOCK_MUSCLE_GROUPS.each do |muscle_group|
+		add_stock_durations_cmd = <<-SQL
+			insert into MuscleGroups (groupname) 
+			select "#{muscle_group}" 
+			where NOT EXISTS
+				(SELECT * FROM MuscleGroups
+				WHERE groupname = "#{muscle_group}")
+			SQL
+
+		db.execute(add_stock_durations_cmd)
+	end
+
+	STOCK_MOVEMENTS.each do |movement_array|
+		add_stock_movements_cmd = <<-SQL
+			insert into Movements (movementName, intensity, musclegroup_ID, duration_ID) 
+			select "#{movement_array[0]}", "#{movement_array[1]}", "#{movement_array[2]}", "#{movement_array[3]}"
+			where NOT EXISTS
+				(SELECT * FROM Movements
+				WHERE movementName = "#{movement_array[0]}")
+		SQL
+
+		db.execute(add_stock_movements_cmd)
+	end
+
+
+############BUSINESS LOGIC
+
+def view_movement_library(db)
+	puts "==========================================="
+	movements = db.execute(<<-SQL
+		select mv.id, Movementname, groupname, duration, intensity 
+		from Movements mv
+		    join durations d on mv.duration_id = d.id
+		    join musclegroups mg on mv.musclegroup_id = mg.id
+		SQL
+		)
+	movements.each do |movearray|
+		puts "#{movearray[0]}: #{movearray[1]}, Group = #{movearray[2]}, Duration (sec)=#{movearray[3]}, Intensity (1-3)=#{movearray[4]} \n\n"
+	end
+	puts "==========================================="
+end
 
 ####################################
 ############USER INTERFACE#######
 ####################################
+
+view_movement_library(db)
