@@ -26,8 +26,8 @@
 # 3) Edit movement
 # 	User selects movement by ID
 # 	Prompt for which field to edit and then it's new value - loop this until they're done editing
-# 		Call new method that takes field and new value as parameters then run
-# 		db.execute( "update table set ? = ?", field value)
+# 		Call new method that takes movement and field as parameters then ask for new value specific to field
+# 		Then run db.execute( "update table set ? = ?", field value)
 # 4) Add movement
 # 	Prompt user for exercise name, muscle group (pull this dynamically?) and intensity level
 # 		check if there's a duplicate in name -- if so, puts that movement and exit method
@@ -80,10 +80,18 @@
 	  )
 	SQL
 
+	create_intensity_cmd = <<-SQL
+	  CREATE TABLE IF NOT EXISTS Intensity(
+	    id INTEGER PRIMARY KEY,
+	    Intensity INT
+	  )
+	SQL
+
 
 	db.execute(create_durations_cmd)
 	db.execute(create_muscle_groups_cmd)
 	db.execute(create_movements_cmd)
+	db.execute(create_intensity_cmd)
 
 	STOCK_DURATIONS.each do |duration|
 		add_stock_durations_cmd = <<-SQL
@@ -95,6 +103,18 @@
 			SQL
 
 		db.execute(add_stock_durations_cmd)
+	end
+
+	STOCK_INTENSITY.each do |intensity|
+		add_stock_intensity_cmd = <<-SQL
+			insert into Intensity (intensity) 
+			select "#{intensity}" 
+			where NOT EXISTS
+				(SELECT * FROM Intensity
+				WHERE Intensity = "#{intensity}")
+			SQL
+
+		db.execute(add_stock_intensity_cmd)
 	end
 
 	STOCK_MUSCLE_GROUPS.each do |muscle_group|
@@ -139,8 +159,101 @@ def view_movement_library(db)
 	puts "==========================================="
 end
 
+def edit_movement_show_valid_options(selected_aspect)
+	case selected_aspect
+	when 1
+		puts "Please specify a new duration by number:"
+	when 2
+		puts "Duration"
+	when 3
+		puts "Intensity"
+	end
+end
+
+			# def edit_movement (db)
+			# 	view_movement_library(db)
+			# 	puts "Please select the movement you'd like to edit by number or type 'exit.'"
+			# 	selected_movement=gets.chomp
+			# 	if selected_movement.downcase == "exit"
+			# 		return
+				
+			# 	else
+			# 	selected_movement=selected_movement.to_i
+			# 	while !(db.execute("select id from movements").include?(selected_movement))
+			# 		view_movement_library(db)
+			# 		puts "That is not a valid response - please select by number"
+			# 		selected_movement = gets.chomp
+			# 	end
+
+			# 	puts "Please select which aspect (by number) you'd like to change:
+			# 	(1) Group
+			# 	(2) Duration
+			# 	(3) Intensity"
+			# 	selected_aspect = gets.chomp.to_i
+			# 		while !((1...3)===selected_aspect)
+			# 		puts "That's not a valid number, please select which aspect (by number) you'd like to change:
+			# 		(1) Group
+			# 		(2) Duration
+			# 		(3) Intensity"
+			# 		selected_aspect = gets.chomp.to_i
+			# 		end
+			# 	edit_movement_show_valid_options(selected_aspect)
+			# 	end
+		# end
+
+	def edit_movement_check_response (response, db, sql)
+		while !(db.execute(sql).flatten.include?(response.to_i))
+			puts 'That is not a valid value. Please specify again.'
+			response=gets.chomp
+		end
+	end
+
+	def edit_movement_options(db, dbtable)
+			puts "Please select an option by number below:"
+			db.execute("select * from #{dbtable}").each do |group|
+				puts "#{group[0]}: #{group[1]}"
+			end
+			user_selection=gets.chomp
+			user_selection=edit_movement_check_response(user_selection.to_i, db, "SELECT id FROM #{dbtable}").to_i 
+	end
+
+
+
+	def edit_movement_detail (db, movement, aspect)
+		case aspect
+		when 1 
+		when 2
+		end
+		# when 3
+		# 	intensity
+	end
+
+	def edit_movement (db)
+		view_movement_library(db)
+		puts "Please select the movement you'd like to edit by number or type 'exit.'"
+			selected_movement=gets.chomp
+				selected_movement=edit_movement_check_response(selected_movement.to_i, db, "SELECT id FROM movements")
+		puts "Please select which aspect (by number) you'd like to change:
+			(1) Group
+			(2) Duration
+			(3) Intensity"
+			selected_aspect=gets.chomp
+			while !((1..3)===selected_aspect.to_i)
+				puts 'That is not a valid value. Please specify again.'
+				selected_aspect=gets.chomp
+			end
+		edit_movement_detail(db, selected_movement, selected_aspect.to_i)
+	end
+
 ####################################
 ############USER INTERFACE#######
 ####################################
 
-view_movement_library(db)
+# view_movement_library(db)
+
+# edit_movement(db)
+ # puts edit_movement_check_response("100".to_i, db, "SELECT id FROM movements")
+
+ # edit_movement(db)
+
+ edit_movement_options(db, "Intensity")

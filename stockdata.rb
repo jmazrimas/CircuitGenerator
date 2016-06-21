@@ -1,4 +1,10 @@
 
+STOCK_INTENSITY = [
+	"Low",
+	"Med",
+	"High"
+]
+
 STOCK_MUSCLE_GROUPS = [
 	"Legs",
 	"Core",
