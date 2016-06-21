@@ -50,6 +50,7 @@
 ####################################
 
 ############DATABASE CREATION
+require_relative "stockdata"
 require 'sqlite3'
 db = SQLite3::Database.new( "circuit.db" )
 
