@@ -325,13 +325,15 @@
 selection = 0
 while selection != 6
 	puts <<-MENU
-		What would you like to do? (Select by number)
-			1) View the available movements
-			2) Generate a circuit
-			3) Add a movement
-			4) Delete a movement
-			5) Update details of a movement
-			6) Exit
+--------------------------------------------------------------------
+What would you like to do? (Select by number)
+	1) View the available movements
+	2) Generate a circuit
+	3) Add a movement
+	4) Delete a movement
+	5) Update details of a movement
+	6) Exit
+--------------------------------------------------------------------
 		MENU
 	selection=gets.chomp.to_i
 	case selection
@@ -340,15 +342,16 @@ while selection != 6
 	when 1
 		then view_movement_library(db)
 	when 2
-		then
+		puts "----------------------"
+		create_new_circuit(db).each do |movements|
+			puts "#{movements[0]}: #{movements[1]} seconds"
+		end
+		puts "----------------------"
 	when 3
-		then
+		then add_movement(db)
 	when 4
-		then
+		then remove_movement(db)
 	when 5
-		then
-	when 6
-		then
-	end
-		
+		then edit_movement(db)
+	end	
 end
