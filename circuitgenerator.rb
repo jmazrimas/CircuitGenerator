@@ -205,10 +205,7 @@
 		puts "Please select the movement you'd like to edit by number or type 'exit.'"
 			selected_movement=gets.chomp
 				selected_movement=edit_movement_check_response(selected_movement.to_i, db, "SELECT id FROM movements")
-		puts "Please select which aspect (by number) you'd like to change:
-			(1) Group
-			(2) Duration
-			(3) Intensity"
+		puts "Please select which aspect (by number) you'd like to change: \n1: Group \n2: Duration \n3: Intensity"
 			selected_aspect=gets.chomp
 			while !((1..3)===selected_aspect.to_i)
 				puts 'That is not a valid value. Please specify again.'
