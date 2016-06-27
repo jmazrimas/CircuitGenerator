@@ -162,17 +162,6 @@
 
 
 ############METHODS RELATED TO DATABASE CHANGES
-	def edit_movement_show_valid_options(selected_aspect)
-		case selected_aspect
-		when 1
-			puts "Please specify a new duration by number:"
-		when 2
-			puts "Duration"
-		when 3
-			puts "Intensity"
-		end
-	end
-
 
 	def edit_movement_check_response (response, db, sql)
 		while !(db.execute(sql).flatten.include?(response.to_i))
@@ -187,6 +176,7 @@
 			db.execute("select * from #{dbtable}").each do |group|
 				puts "#{group[0]}: #{group[1]}"
 			end
+			puts"----------------------"
 			user_selection=gets.chomp
 			user_selection=edit_movement_check_response(user_selection.to_i, db, "SELECT id FROM #{dbtable}").to_i
 	end
@@ -215,10 +205,7 @@
 		puts "Please select the movement you'd like to edit by number or type 'exit.'"
 			selected_movement=gets.chomp
 				selected_movement=edit_movement_check_response(selected_movement.to_i, db, "SELECT id FROM movements")
-		puts "Please select which aspect (by number) you'd like to change:
-			(1) Group
-			(2) Duration
-			(3) Intensity"
+		puts "Please select which aspect (by number) you'd like to change: \n1: Group \n2: Duration \n3: Intensity"
 			selected_aspect=gets.chomp
 			while !((1..3)===selected_aspect.to_i)
 				puts 'That is not a valid value. Please specify again.'
@@ -229,51 +216,139 @@
 
 ############METHODS RELATED TO DATABASE ADDITIONS
 
+	def add_movement_check_duplicate(db, new_movement)
+		existing_movements = db.execute("select movementName from movements").flatten
+		existing_movements.map! do |movement| 
+			movement.downcase
+		end
+		existing_movements.include?(new_movement.downcase)
+	end
+
+	def add_movement_push_to_db(db, new_movement, muscle_group, duration, intensity)
+		db.execute(
+			<<-SQL
+			INSERT INTO movements (movementname, intensity_ID, musclegroup_ID, duration_ID) 
+			values (
+			"#{new_movement}",
+			"#{intensity}",
+			"#{muscle_group}",
+			"#{duration}"
+			)
+			SQL
+			)
+	end
+
+	def add_movement(db)
+		puts "Please enter exercise name:"
+		new_movement=gets.chomp
+		if add_movement_check_duplicate(db, new_movement)
+				puts "That exercise is already in the database"
+		else
+			puts "----------------------\nMuscle Group?"
+			muscle_group = edit_movement_options(db, "MuscleGroups")
+			puts "----------------------\nDuration?"
+			duration = edit_movement_options(db, "durations")
+			puts "----------------------\nIntensity?"
+			intensity = edit_movement_options(db, "intensity")
+			add_movement_push_to_db(db, new_movement, muscle_group, duration, intensity)
+		end
+	end
+
+############METHODS RELATED TO DATABASE DELETIONS
+	def delete_movement(db, movement_ID)
+		db.execute("DELETE FROM movements where id = #{movement_ID}")
+	end
+
+	def remove_movement_confirm(db, movement_ID)
+		movementname = db.execute("SELECT movementname FROM movements where id = #{movement_ID}").flatten
+		puts "Are you sure you want to delete #{movementname[0]} (y/n)?"
+		confirm=gets.chomp
+			if confirm[0].downcase=="y"
+				delete_movement(db,movement_ID)
+				return true
+			else 
+				return false
+			end
+	end
+
+	def remove_movement (db)
+		view_movement_library(db)
+		confirmed=false
+		while !confirmed
+			puts "Please select a movement to remove by number or type 'exit'"
+			response = gets.chomp
+			if response.downcase == "exit"
+				confirmed=true
+			elsif !db.execute("select id from movements").flatten.include?(response.to_i)
+				puts "That is not a valid selection"
+			else confirmed=remove_movement_confirm(db, response.to_i)
+			end
+		end
+
+	end
+
 ############METHODS RELATED TO GENERATION OF CIRCUIT
 
-def create_new_circuit_get_next (db, last_muscle_group)
-	movement_array=db.execute("
-					select movementName, duration, musclegroup_id
-					from movements mv 
-					join durations d on d.id = mv.duration_id 
-					where musclegroup_ID <> #{last_muscle_group}
-					"
-					)
-	movement_array[rand(0..movement_array.length-1)]
-end 
+	def create_new_circuit_get_next (db, last_muscle_group)
+		movement_array=db.execute("
+						select movementName, duration, musclegroup_id
+						from movements mv 
+						join durations d on d.id = mv.duration_id 
+						where musclegroup_ID <> #{last_muscle_group}
+						"
+						)
+		movement_array[rand(0..movement_array.length-1)]
+	end 
 
-def create_new_circuit(db)
-	duration=0
-	circuit=[]
-	while duration < 900
-		if !(circuit.length == 0)
-			last_muscle_group = circuit.last[2]
-		else last_muscle_group = 0
+	def create_new_circuit(db)
+		duration=0
+		circuit=[]
+		while duration < 900
+			if !(circuit.length == 0)
+				last_muscle_group = circuit.last[2]
+			else last_muscle_group = 0
+			end
+			next_move = create_new_circuit_get_next(db, last_muscle_group).flatten
+			circuit.push(next_move)
+			duration += circuit.last[1]
 		end
-		next_move = create_new_circuit_get_next(db, last_muscle_group).flatten
-		circuit.push(next_move)
-		duration += circuit.last[1]
+		return circuit
 	end
-	return circuit
-end
 
 ####################################
 ############USER INTERFACE#######
 ####################################
 
-# view_movement_library(db)
-
-# edit_movement(db)
- # puts edit_movement_check_response("100".to_i, db, "SELECT id FROM movements")
-
- # edit_movement(db)
-
- # view_movement_library(db)
-
- # edit_movement_options(db, "Intensity")
-
-# create_new_circuit(db)
-
-create_new_circuit(db).each do |exercise|
-	puts "#{exercise[0]}: #{exercise[1]} seconds"
+selection = 0
+while selection != 6
+	puts <<-MENU
+--------------------------------------------------------------------
+What would you like to do? (Select by number)
+	1) View the available movements
+	2) Generate a circuit
+	3) Add a movement
+	4) Delete a movement
+	5) Update details of a movement
+	6) Exit
+--------------------------------------------------------------------
+		MENU
+	selection=gets.chomp.to_i
+	case selection
+	when 0
+		then
+	when 1
+		then view_movement_library(db)
+	when 2
+		puts "----------------------"
+		create_new_circuit(db).each do |movements|
+			puts "#{movements[0]}: #{movements[1]} seconds"
+		end
+		puts "----------------------"
+	when 3
+		then add_movement(db)
+	when 4
+		then remove_movement(db)
+	when 5
+		then edit_movement(db)
+	end	
 end
